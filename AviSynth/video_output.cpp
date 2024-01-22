@@ -51,7 +51,7 @@ extern "C"
 #include <libavutil/mastering_display_metadata.h>
 }
 
-#include "../common/lwsimd.h"
+//#include "../common/lwsimd.h"
 
 #include "video_output.h"
 
