@@ -106,6 +106,7 @@ int resample_audio(SwrContext *swr, audio_samples_t *out, audio_samples_t *in )
         request_sample_count -= resampled_count;
         *out->data += resampled_count * block_align;
     }
+    uint8_t **in_data = in->sample_count > 0 ? in->data : NULL;
     if( in_data )
     {
         /* Never pass uninitialised or missing input planes to swr_convert. */
@@ -118,7 +119,6 @@ int resample_audio(SwrContext *swr, audio_samples_t *out, audio_samples_t *in )
                 return 0;
         }
     }
-    uint8_t **in_data = in->sample_count > 0 ? in->data : NULL;
 	const uint8_t **indata = (const uint8_t**)in_data;
     int resampled_count = swr_convert( swr, out->data, request_sample_count,
                                                      indata,  in->sample_count );
