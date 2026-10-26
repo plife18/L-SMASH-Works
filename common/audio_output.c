@@ -48,7 +48,7 @@ static int consume_decoded_audio_samples
 )
 {
     /* Input */
-    uint8_t *in_data[32];
+    uint8_t *in_data[32] = { 0 };
     int decoded_data_offset = sample_offset * aohp->input_block_align;
     for( int i = 0; i < aohp->input_planes; i++ )
         in_data[i] = frame->extended_data[i] + decoded_data_offset;
@@ -155,6 +155,19 @@ uint64_t output_pcm_samples_from_packet
             /* Check channel layout, sample rate and sample format of decoded audio samples. */
             if( frame_buffer->channel_layout == 0 )
                 frame_buffer->channel_layout = av_get_default_channel_layout( ctx->channels );
+            if( frame_buffer->channel_layout == 0 )
+            {
+                /* The decoder produced a frame without a usable channel layout
+                 * (e.g. a corrupt AAC frame that made the decoder reconfigure
+                 * to zero channels). Skip the frame instead of feeding it to
+                 * the resampler: with a zero channel layout the input plane
+                 * count becomes 0, the in_data[] array is left uninitialised,
+                 * and swr_convert() dereferences garbage pointers. */
+                *output_flags |= AUDIO_DECODER_ERROR;
+                av_frame_unref( frame_buffer );
+                pkt->size = 0;
+                break;
+            }
             enum AVSampleFormat input_sample_format = (enum AVSampleFormat)frame_buffer->format;
             if( aohp->input_channel_layout != frame_buffer->channel_layout
              || aohp->input_sample_rate    != frame_buffer->sample_rate
